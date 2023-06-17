@@ -24,6 +24,11 @@ Usage - formats:
                                          yolov5s.tflite             # TensorFlow Lite
                                          yolov5s_edgetpu.tflite     # TensorFlow Edge TPU
 """
+"""
+detect_with_Camera.py 기반 ros sender를 추가한 코드
+결과를 ROS(Robot Operating System)에 전송하는 역할을 수행한다.
+ 상세내용 : 'yolov5_main' 노드에서 YOLOv5 모델을 실행하고, 결과를 'classes' 토픽으로 발행하는 역할을 수행
+"""
 
 import os
 import sys
@@ -88,9 +93,10 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
     model.warmup(imgsz=(1 if pt else bs, 3, *imgsz), half=half)  # warmup
     dt, seen = [0.0, 0.0, 0.0], 0
 
-    pub = rospy.Publisher('classes', String, queue_size=10)
-    rospy.init_node('yolov5_main', anonymous=True)
-    rate = rospy.Rate(50)
+    pub = rospy.Publisher('classes', String, queue_size=10) #ROS에 메시지 발행하는 Publisher 객체 생성
+    # 발행할 토픽 이름 : classes, 타입 : str, 큐 size : 10 
+    rospy.init_node('yolov5_main', anonymous=True) # 노드 이름 : yolov5_main
+    rate = rospy.Rate(50) #초당 50번 수행
     
     while True:
 
