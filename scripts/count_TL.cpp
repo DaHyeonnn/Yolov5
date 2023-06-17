@@ -4,7 +4,10 @@
 
 using namespace std;
 
-
+"""
+학습시킬 때, 신호등 색의 비율을 맞추기 위한 코드입니다.
+신호등 색깔 인식 (R, O, G, LR, LO, LG)의 개수를 추출합니다.
+"""
 
 int main(int argc, char** argv) {
 	ifstream FILE;
