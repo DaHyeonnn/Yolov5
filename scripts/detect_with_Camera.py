@@ -26,6 +26,11 @@ Usage - formats:
                                          yolov5s_edgetpu.tflite     # TensorFlow Edge TPU
 """
 
+"""
+YOLOv5 모델을 사용하여 이미지 또는 비디오에서 객체 감지를 수행
+--weights 옵션을 통해 학습한 model pt로 객체를 탐지한다. ( 신호등/ 사람,차량 )
+"""
+
 import os
 import sys
 from pathlib import Path
@@ -56,26 +61,25 @@ IMGSZ = (1920, 1080)
 FPS = 13 # 0 -> as much as possable (default)
 pass_list = ["person", "car"]
 @torch.no_grad()
-def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
+def run(weights=ROOT / 'yolov5s.pt',  # model.pt path 변경
 # def run(weights=ROOT / 'RTX_3090_0516.pt',  # model.pt path(s)
         # data=ROOT / 'data/coco128.yaml',  # dataset.yaml path
         conf_thres=0.65,  # confidence threshold
         iou_thres=0.6,  # NMS IOU threshold;
         max_det=1000,  # maximum detections per image
-        device='',  # cuda device, i.e. 0 or 0,1,2,3 or cpu
+        device=0,  # cuda device, i.e. 0 or 0,1,2,3 or cpu
         line_thickness=3,  # bounding box thickness (pixels)
         hide_labels=False,  # hide labels
         hide_conf=False,  # hide confidences
         ):
 
     # Load model
-    device = select_device(device)
-    # model = DetectMultiBackend(weights, device=device, dnn=False, data=data)
+    device = select_device(device) #device 선택 / default : webcam
     model = DetectMultiBackend(weights, device=device, dnn=False)
     stride, names, pt, jit, onnx, engine = model.stride, model.names, model.pt, model.jit, model.onnx, model.engine
     imgsz = check_img_size(IMGSZ, s=stride)  # check image size
 
-    # Half
+    # Half : f16 활성화
     half = False
     half &= (pt or jit or onnx or engine) and device.type != 'cpu'  # FP16 supported on limited backends with CUDA
     if pt or jit:
@@ -87,8 +91,8 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
     bs = 1
 
     # Run inference
-    model.warmup(imgsz=(1 if pt else bs, 3, *imgsz), half=half)  # warmup
-    dt, seen = [0.0, 0.0, 0.0], 0
+    model.warmup(imgsz=(1 if pt else bs, 3, *imgsz), half=half)  # 모델 초기화
+    dt, seen = [0.0, 0.0, 0.0], 0 # dt = 이미지 전처리 시간, 추론 과정 시간, nms 과정 시간
 
     while True:
         s_time = time.time()
@@ -96,7 +100,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         t1 = time_sync()
         im = torch.from_numpy(im).to(device)
         im = im.half() if half else im.float()  # uint8 to fp16/32
-        im /= 255  # 0 - 255 to 0.0 - 1.0
+        im /= 255  # 0-255 to 0-1
         if len(im.shape) == 3:
             im = im[None]  # expand for batch dim
         t2 = time_sync()
@@ -115,16 +119,16 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
 
         # Process predictions
-        for i, det in enumerate(pred):  # per image
+        for i, det in enumerate(pred):  # per image(frame)
             seen += 1
             s += f'{i}: '
 
             s += '%gx%g ' % im.shape[2:]  # print string
-            annotator = Annotator(im0, line_width=line_thickness, example=str(names))
+            annotator = Annotator(im0, line_width=line_thickness, example=str(names)) # 시각화를 위한 Annotator
             
-            if len(det):
+            if len(det): # 객체가 감지된 경우
                 # Rescale boxes from img_size to im0 size
-                det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round()
+                det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round() # 이미지 scale에 맞게 박스 조정
 
                 # Print results
                 for c in det[:, -1].unique():
