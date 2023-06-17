@@ -1,4 +1,8 @@
 #!/home/autonav-linux/catkin_ws/src/yolov5_ROS/scripts/yolov5/bin/python3
+"""
+ros_sender.py에서 발행한 'classes' topic subscriber
+"""
+
 
 import rospy
 from std_msgs.msg import String
